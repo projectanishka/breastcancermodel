@@ -34,3 +34,15 @@ if st.button('Predict'):
         st.error('Flag for follow-up (specialist review recommended)')
     else:
         st.success('Low estimated risk')
+
+import matplotlib.pyplot as plt
+
+st.subheader("Key Diagnostic Features")
+# Extract model coefficients/weights
+coefs = pd.Series(pipe.named_steps['logisticregression'].coef_[0], index=X.columns)
+top_features = coefs.abs().sort_values(ascending=False).head(5)
+
+fig, ax = plt.subplots()
+top_features.plot(kind='barh', ax=ax, color='skyblue')
+ax.set_xlabel("Absolute Feature Weight")
+st.pyplot(fig)
