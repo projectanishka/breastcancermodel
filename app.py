@@ -4,12 +4,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from sklearn.datasets import load_breast_cancer
-from sklearn.model_selection import cross_validate
+from sklearn.model_selection import cross_validate, train_test_split
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import make_pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
+from sklearn.metrics import RocCurveDisplay, PrecisionRecallDisplay
 
 # Load pipeline and dataset
 pipe = joblib.load('pipeline.joblib')
@@ -70,6 +71,31 @@ def evaluate_models():
 
 results_df = evaluate_models()
 st.table(results_df)
+
+st.divider()
+
+# ROC & Precision-Recall Curves
+st.subheader("Diagnostic Evaluation Curves")
+st.write("Visualizing sensitivity vs. specificity trade-offs on unseen test data:")
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+pipe.fit(X_train, y_train)
+
+col1, col2 = st.subplots(2)
+
+with col1:
+    st.write("**ROC Curve**")
+    fig_roc, ax_roc = plt.subplots(figsize=(6, 4))
+    RocCurveDisplay.from_estimator(pipe, X_test, y_test, ax=ax_roc)
+    st.pyplot(fig_roc)
+
+with col2:
+    st.write("**Precision-Recall Curve**")
+    fig_pr, ax_pr = plt.subplots(figsize=(6, 4))
+    PrecisionRecallDisplay.from_estimator(pipe, X_test, y_test, ax=ax_pr)
+    st.pyplot(fig_pr)
+
+st.divider()
 
 # Feature Importance Chart
 st.subheader("Key Diagnostic Features (Logistic Regression)")
