@@ -81,7 +81,7 @@ st.write("Visualizing sensitivity vs. specificity trade-offs on unseen test data
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
 pipe.fit(X_train, y_train)
 
-col1, col2 = st.subplots(2)
+col1, col2 = st.columns(2)
 
 with col1:
     st.write("**ROC Curve**")
