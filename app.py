@@ -22,6 +22,14 @@ typical = df.groupby('target').mean()
 st.title('Breast Tumour Risk Screener')
 st.caption('Educational demo only. Not a medical device.')
 
+# Dataset Information Expander
+with st.expander("ℹ️ About the Dataset & Metrics"):
+    st.markdown("""
+    - **Source**: Wisconsin Diagnostic Breast Cancer (WDBC) dataset.
+    - **Features**: 30 nuclear features computed from digitized images of Fine Needle Aspirates (FNA).
+    - **Recall (Sensitivity)**: Measures the proportion of actual malignant cases correctly flagged. In clinical screening, high recall is prioritized to minimize missed diagnoses.
+    """)
+
 choice = st.radio('Start from a typical:', ['benign sample', 'malignant sample'], key='sample_choice')
 start = typical.loc[1 if choice == 'benign sample' else 0]
 
@@ -35,13 +43,16 @@ for col in X.columns:
         key=f'{col}-{choice}'
     )
 
+# Decision Threshold Slider
+threshold = st.slider("Decision Threshold (Safety Dial)", 0.10, 0.90, 0.30, 0.05)
+
 if st.button('Predict'):
     p_malignant = 1 - pipe.predict_proba(pd.DataFrame([values]))[0][1]
     
     st.metric('Estimated chance of malignancy', f'{p_malignant:.0%}')
     
-    if p_malignant > 0.30:
-        st.error('Flag for follow-up (specialist review recommended)')
+    if p_malignant > threshold:
+        st.error(f'Flag for follow-up (Risk exceeds safety threshold of {threshold:.0%})')
     else:
         st.success('Low estimated risk')
 
