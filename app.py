@@ -1,6 +1,7 @@
 import streamlit as st
 import joblib
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 
 from sklearn.datasets import load_breast_cancer
@@ -12,6 +13,24 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import RocCurveDisplay, PrecisionRecallDisplay
 
+# Page Config
+st.set_page_config(page_title="Breast Tumour Risk Screener", layout="wide")
+
+# Custom CSS for Background & Aesthetics
+st.markdown("""
+    <style>
+    /* Main app background gradient */
+    .stApp {
+        background: linear-gradient(135deg, #1e1e2f 0%, #0f172a 100%);
+        color: #f8fafc;
+    }
+    /* Style cards and container boxes */
+    div[data-testid="stMetricValue"] {
+        color: #38bdf8;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # Load pipeline and dataset
 pipe = joblib.load('pipeline.joblib')
 df = load_breast_cancer(as_frame=True).frame
@@ -19,15 +38,14 @@ X = df.drop(columns='target')
 y = df['target']
 typical = df.groupby('target').mean()
 
-st.title('Breast Tumour Risk Screener')
+st.title('🔬 Breast Tumour Risk Screener')
 st.caption('Educational demo only. Not a medical device.')
 
-# Dataset Information Expander
 with st.expander("ℹ️ About the Dataset & Metrics"):
     st.markdown("""
     - **Source**: Wisconsin Diagnostic Breast Cancer (WDBC) dataset.
     - **Features**: 30 nuclear features computed from digitized images of Fine Needle Aspirates (FNA).
-    - **Recall (Sensitivity)**: Measures the proportion of actual malignant cases correctly flagged. In clinical screening, high recall is prioritized to minimize missed diagnoses.
+    - **Recall (Sensitivity)**: Measures the proportion of actual malignant cases correctly flagged.
     """)
 
 choice = st.radio('Start from a typical:', ['benign sample', 'malignant sample'], key='sample_choice')
@@ -43,18 +61,46 @@ for col in X.columns:
         key=f'{col}-{choice}'
     )
 
-# Decision Threshold Slider
 threshold = st.slider("Decision Threshold (Safety Dial)", 0.10, 0.90, 0.30, 0.05)
 
-if st.button('Predict'):
-    p_malignant = 1 - pipe.predict_proba(pd.DataFrame([values]))[0][1]
+# Main UI Grid
+col_pred, col_shape = st.columns([1, 1])
+
+with col_pred:
+    if st.button('Predict'):
+        p_malignant = 1 - pipe.predict_proba(pd.DataFrame([values]))[0][1]
+        
+        st.metric('Estimated chance of malignancy', f'{p_malignant:.0%}')
+        
+        if p_malignant > threshold:
+            st.error(f'Flag for follow-up (Risk exceeds safety threshold of {threshold:.0%})')
+        else:
+            st.success('Low estimated risk')
+
+with col_shape:
+    st.write("**Dynamic Cell Morphological Visualization**")
     
-    st.metric('Estimated chance of malignancy', f'{p_malignant:.0%}')
+    # Generate polar shape based on radius, concavity, and smoothness slider values
+    r_val = values.get('mean radius', 14.0)
+    concavity_val = values.get('mean concavity', 0.1)
+    smoothness_val = values.get('mean smoothness', 0.1)
     
-    if p_malignant > threshold:
-        st.error(f'Flag for follow-up (Risk exceeds safety threshold of {threshold:.0%})')
-    else:
-        st.success('Low estimated risk')
+    angles = np.linspace(0, 2 * np.pi, 200)
+    # Deform circle based on concavity (irregularity) and smoothness (high frequency noise)
+    noise = np.sin(5 * angles) * concavity_val * 15 + np.cos(10 * angles) * smoothness_val * 10
+    radius_profile = r_val + noise
+    
+    fig_cell, ax_cell = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=(4, 4))
+    fig_cell.patch.set_alpha(0.0)
+    ax_cell.patch.set_alpha(0.0)
+    
+    ax_cell.plot(angles, radius_profile, color='#ef4444' if concavity_val > 0.15 else '#22c55e', linewidth=2)
+    ax_cell.fill(angles, radius_profile, color='#ef4444' if concavity_val > 0.15 else '#22c55e', alpha=0.3)
+    ax_cell.set_yticklabels([])
+    ax_cell.set_xticklabels([])
+    ax_cell.grid(True, color='#475569', linestyle='--', alpha=0.5)
+    
+    st.pyplot(fig_cell)
 
 st.divider()
 
