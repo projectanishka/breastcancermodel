@@ -30,18 +30,6 @@ st.markdown("""
         color: #38bdf8;
     }
     </style>
-""", unsafe_unsafe_allow_html=True) if hasattr(st, "markdown") else None
-
-st.markdown("""
-    <style>
-    .stApp {
-        background: linear-gradient(135deg, #1e1e2f 0%, #0f172a 100%);
-        color: #f8fafc;
-    }
-    div[data-testid="stMetricValue"] {
-        color: #38bdf8;
-    }
-    </style>
 """, unsafe_allow_html=True)
 
 # Load pipeline and dataset
