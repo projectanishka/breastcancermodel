@@ -3,6 +3,7 @@ import joblib
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import cross_validate, train_test_split
@@ -25,6 +26,18 @@ st.markdown("""
         color: #f8fafc;
     }
     /* Style cards and container boxes */
+    div[data-testid="stMetricValue"] {
+        color: #38bdf8;
+    }
+    </style>
+""", unsafe_unsafe_allow_html=True) if hasattr(st, "markdown") else None
+
+st.markdown("""
+    <style>
+    .stApp {
+        background: linear-gradient(135deg, #1e1e2f 0%, #0f172a 100%);
+        color: #f8fafc;
+    }
     div[data-testid="stMetricValue"] {
         color: #38bdf8;
     }
@@ -78,29 +91,53 @@ with col_pred:
             st.success('Low estimated risk')
 
 with col_shape:
-    st.write("**Dynamic Cell Morphological Visualization**")
+    st.write("**3D Cell Morphological Model (Interactive)**")
     
-    # Generate polar shape based on radius, concavity, and smoothness slider values
+    # Extract morphological features
     r_val = values.get('mean radius', 14.0)
     concavity_val = values.get('mean concavity', 0.1)
     smoothness_val = values.get('mean smoothness', 0.1)
     
-    angles = np.linspace(0, 2 * np.pi, 200)
-    # Deform circle based on concavity (irregularity) and smoothness (high frequency noise)
-    noise = np.sin(5 * angles) * concavity_val * 15 + np.cos(10 * angles) * smoothness_val * 10
-    radius_profile = r_val + noise
+    # Generate 3D spherical mesh deformed by concavity and smoothness
+    phi = np.linspace(0, np.pi, 50)
+    theta = np.linspace(0, 2 * np.pi, 50)
+    phi, theta = np.meshgrid(phi, theta)
     
-    fig_cell, ax_cell = plt.subplots(subplot_kw={'projection': 'polar'}, figsize=(4, 4))
-    fig_cell.patch.set_alpha(0.0)
-    ax_cell.patch.set_alpha(0.0)
+    # Irregularity displacement based on sliders
+    deformation = (
+        np.sin(4 * theta) * np.cos(3 * phi) * concavity_val * 12 +
+        np.cos(8 * theta) * np.sin(6 * phi) * smoothness_val * 8
+    )
+    radius_3d = r_val + deformation
     
-    ax_cell.plot(angles, radius_profile, color='#ef4444' if concavity_val > 0.15 else '#22c55e', linewidth=2)
-    ax_cell.fill(angles, radius_profile, color='#ef4444' if concavity_val > 0.15 else '#22c55e', alpha=0.3)
-    ax_cell.set_yticklabels([])
-    ax_cell.set_xticklabels([])
-    ax_cell.grid(True, color='#475569', linestyle='--', alpha=0.5)
+    # Spherical coordinates to Cartesian
+    x_3d = radius_3d * np.sin(phi) * np.cos(theta)
+    y_3d = radius_3d * np.sin(phi) * np.sin(theta)
+    z_3d = radius_3d * np.cos(phi)
     
-    st.pyplot(fig_cell)
+    # Pick color based on irregularity
+    cell_color = 'Reds' if concavity_val > 0.15 else 'Greens'
+    
+    fig_3d = go.Figure(data=[go.Surface(
+        x=x_3d, y=y_3d, z=z_3d,
+        colorscale=cell_color,
+        showscale=False,
+        opacity=0.85
+    )])
+    
+    fig_3d.update_layout(
+        margin=dict(l=0, r=0, b=0, t=0),
+        scene=dict(
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+            zaxis=dict(visible=False),
+            bgcolor="rgba(0,0,0,0)"
+        ),
+        paper_bgcolor="rgba(0,0,0,0)",
+        height=320
+    )
+    
+    st.plotly_chart(fig_3d, use_container_width=True)
 
 st.divider()
 
